@@ -1,0 +1,94 @@
+"use client";
+
+import { useProject, useGenerateUI } from "@/hooks/queries";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { ArrowLeft, ArrowRight, MonitorPlay } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+
+export default function UIPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = params.id as string;
+  const { data: project, isLoading } = useProject(id);
+  const generateUI = useGenerateUI();
+
+  const handleGenerate = () => {
+    generateUI.mutate(id);
+  };
+
+  const handleContinue = () => {
+    router.push(`/projects/${id}/interactions`); 
+  };
+
+  if (isLoading) return <LoadingUI />;
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      <Link href={`/projects/${id}/script`} className="mb-8 inline-flex items-center text-sm text-[#888888] hover:text-[#EDEDED] transition-colors">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Script
+      </Link>
+
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-medium tracking-tight">UI Synthesis</h1>
+          <p className="mt-1 text-[#888888]">Preview the AI-generated frontend UI code.</p>
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline" onClick={handleGenerate} isLoading={generateUI.isPending || project?.status === 'GENERATING'}>
+             Regenerate UI
+          </Button>
+          <Button onClick={handleContinue} disabled={!project?.uiCode}>
+            Continue <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {!project?.uiCode && !generateUI.isPending ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Card className="flex flex-col items-center justify-center p-16 text-center border-dashed">
+              <MonitorPlay className="mb-4 h-8 w-8 text-[#888888]" />
+              <p className="mb-6 text-[#888888]">No UI available. Let's synthesize it from the script.</p>
+              <Button onClick={handleGenerate}>Synthesize UI</Button>
+            </Card>
+          </motion.div>
+        ) : generateUI.isPending ? (
+          <LoadingUI key="loading" />
+        ) : (
+          <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="overflow-hidden border border-[#222224] bg-white p-0 shadow-lg">
+              <div className="bg-[#141415] border-b border-[#222224] px-4 py-2 flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-red-500/20" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/20" />
+                <div className="h-3 w-3 rounded-full bg-green-500/20" />
+              </div>
+              <iframe 
+                srcDoc={project.uiCode}
+                className="w-full h-[600px] border-0"
+                title="UI Preview"
+                sandbox="allow-scripts"
+              />
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function LoadingUI() {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-5xl px-6 py-12">
+      <Skeleton className="h-4 w-24 mb-8" />
+      <div className="mb-8 flex justify-between">
+        <div><Skeleton className="h-8 w-64 mb-2" /><Skeleton className="h-4 w-48" /></div>
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Skeleton className="h-[600px] w-full rounded-2xl" />
+    </motion.div>
+  );
+}

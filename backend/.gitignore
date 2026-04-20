@@ -1,0 +1,16 @@
+# Node
+node_modules/
+dist/
+
+# Env
+.env
+.env.*.local
+
+# Prisma
+# prisma/dev.db
+
+# Storage
+storage/
+
+# OS
+.DS_Store
