@@ -5,11 +5,20 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Textarea } from "@/components/ui/Textarea";
-import { ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wand2, Ratio, Clapperboard, Palette } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+type ScriptRenderConfig = {
+  aspectRatio?: "16:9" | "9:16";
+  platform?: "instagram_reels" | "tiktok" | "youtube_shorts";
+};
+
+type ScriptPayload = {
+  renderConfig?: ScriptRenderConfig;
+};
 
 export default function ScriptPage() {
   const params = useParams();
@@ -18,16 +27,25 @@ export default function ScriptPage() {
   const { data: project, isLoading } = useProject(id);
   const generateScript = useGenerateScript();
   
-  const [editableScript, setEditableScript] = useState("");
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
+  const [platform, setPlatform] = useState<"instagram_reels" | "tiktok" | "youtube_shorts">("youtube_shorts");
+  const [tone, setTone] = useState<"premium" | "bold" | "playful" | "crazy">("crazy");
 
-  useEffect(() => {
-    if (project?.script && !generateScript.isPending) {
-      setEditableScript(JSON.stringify(project.script, null, 2));
-    }
-  }, [project?.script, generateScript.isPending]);
+  const scriptPayload = useMemo(() => (project?.script as ScriptPayload | undefined) || undefined, [project?.script]);
+  const scriptRenderConfig = scriptPayload?.renderConfig;
+  const effectiveAspectRatio = scriptRenderConfig?.aspectRatio || aspectRatio;
+  const effectivePlatform = scriptRenderConfig?.platform || platform;
+  const scriptText = project?.script ? JSON.stringify(project.script, null, 2) : "";
 
   const handleGenerate = () => {
-    generateScript.mutate(id);
+    generateScript.mutate({
+      projectId: id,
+      creative: {
+        aspectRatio: effectiveAspectRatio,
+        platform: effectivePlatform,
+        tone,
+      },
+    });
   };
 
   const handleContinue = () => {
@@ -46,7 +64,7 @@ export default function ScriptPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-medium tracking-tight">Script & Flow</h1>
-          <p className="mt-1 text-[#888888]">Review the generated flow for your video.</p>
+          <p className="mt-1 text-[#888888]">Direct the story style, then generate a high-retention script.</p>
         </div>
         <div className="flex gap-4">
           <Button variant="outline" onClick={handleGenerate} isLoading={generateScript.isPending}>
@@ -57,6 +75,69 @@ export default function ScriptPage() {
           </Button>
         </div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6 grid gap-4 md:grid-cols-3"
+      >
+        <Card className="p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm text-[#B8B8B8]">
+            <Ratio className="h-4 w-4" /> Aspect Ratio
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={effectiveAspectRatio === "16:9" ? "solid" : "outline"}
+              onClick={() => setAspectRatio("16:9")}
+              className="w-full"
+            >
+              16:9
+            </Button>
+            <Button
+              variant={effectiveAspectRatio === "9:16" ? "solid" : "outline"}
+              onClick={() => setAspectRatio("9:16")}
+              className="w-full"
+            >
+              9:16
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm text-[#B8B8B8]">
+            <Clapperboard className="h-4 w-4" /> Platform
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <Button variant={effectivePlatform === "youtube_shorts" ? "solid" : "outline"} onClick={() => setPlatform("youtube_shorts")} className="w-full">
+              YouTube Shorts
+            </Button>
+            <Button variant={effectivePlatform === "instagram_reels" ? "solid" : "outline"} onClick={() => setPlatform("instagram_reels")} className="w-full">
+              Instagram Reels
+            </Button>
+            <Button variant={effectivePlatform === "tiktok" ? "solid" : "outline"} onClick={() => setPlatform("tiktok")} className="w-full">
+              TikTok
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm text-[#B8B8B8]">
+            <Palette className="h-4 w-4" /> Tone
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {(["premium", "bold", "playful", "crazy"] as const).map((item) => (
+              <Button
+                key={item}
+                variant={tone === item ? "solid" : "outline"}
+                onClick={() => setTone(item)}
+                className="w-full capitalize"
+              >
+                {item}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      </motion.div>
 
       <AnimatePresence mode="wait">
         {!project?.script && !generateScript.isPending ? (
@@ -72,10 +153,10 @@ export default function ScriptPage() {
         ) : (
           <motion.div key="content" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="p-6">
-              <div className="mb-4 text-sm font-medium text-[#888888]">JSON Payload (Editable in Future)</div>
+              <div className="mb-4 text-sm font-medium text-[#888888]">Generated JSON Payload</div>
               <Textarea 
-                value={editableScript}
-                onChange={(e) => setEditableScript(e.target.value)}
+                value={scriptText}
+                readOnly
                 className="font-mono text-sm h-96 bg-[#000000]"
                 spellCheck={false}
               />

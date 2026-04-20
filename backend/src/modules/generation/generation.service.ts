@@ -20,7 +20,7 @@ export class GenerationService {
     });
 
     try {
-      const script = await this.openaiService.generateScript(project.inputText);
+      const script = await this.openaiService.generateScript(project.inputText, data.creative);
       await prisma.project.update({
         where: { id: project.id },
         data: { script },

@@ -2,11 +2,14 @@
 
 import { useProject, useComposeVideo } from "@/hooks/queries";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Loader2, Clapperboard, CheckCircle2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
+
+type ProjectMedia = {
+  type: string;
+};
 
 export default function RenderPage() {
   const params = useParams();
@@ -14,25 +17,26 @@ export default function RenderPage() {
   const id = params.id as string;
   const { data: project } = useProject(id);
   const composeVideo = useComposeVideo();
-
-  const [composed, setComposed] = useState(false);
+  const composeTriggeredRef = useRef(false);
 
   const status = project?.status || "PENDING";
+  const hasUserVideo = project?.media?.some((m: ProjectMedia) => m.type === "USER_VIDEO") || false;
   
   useEffect(() => {
     // If it's done rendering, trigger composition automatically if media is present, or just go to final
-    if (status === "RECORDING" && !composed) { // Backends sets RECORDING after render finishes
-      const hasUserVideo = project?.media?.some((m: any) => m.type === "USER_VIDEO");
+    if (status === "RECORDING" && !composeTriggeredRef.current) { // Backend sets RECORDING after render finishes
+      composeTriggeredRef.current = true;
       if (hasUserVideo) {
         composeVideo.mutate({ projectId: id, layout: "pip" });
+      } else {
+        router.push(`/projects/${id}/final`);
       }
-      setComposed(true);
     }
     
     if (status === "COMPLETED") {
       router.push(`/projects/${id}/final`);
     }
-  }, [status, composed, project?.media, composeVideo, id, router]);
+  }, [status, hasUserVideo, composeVideo, id, router]);
 
   const stages = [
     { key: "RENDERING", label: "Simulating interactions & Recording Chrome UI..." },
@@ -43,7 +47,6 @@ export default function RenderPage() {
   const getStageState = (stageKey: string) => {
     const order = ["PENDING", "GENERATING", "RENDERING", "RECORDING", "COMPOSING", "COMPLETED"];
     const currentIndex = order.indexOf(status);
-    const stageIndex = order.indexOf(stageKey);
     // Since backend jumps from RENDERING -> RECORDING (done render), we treat RECORDING as past RENDERING.
 
     if (stageKey === "RENDERING") {
@@ -52,7 +55,10 @@ export default function RenderPage() {
     }
     if (stageKey === "COMPOSING") {
       if (currentIndex > order.indexOf("COMPOSING")) return "complete";
-      if (currentIndex === order.indexOf("COMPOSING") || currentIndex === order.indexOf("RECORDING")) return "active";
+      if (currentIndex === order.indexOf("COMPOSING")) return "active";
+      if (currentIndex === order.indexOf("RECORDING")) {
+        return hasUserVideo ? "active" : "complete";
+      }
     }
     if (stageKey === "COMPLETED") {
       if (currentIndex === order.indexOf("COMPLETED")) return "complete";

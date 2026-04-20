@@ -27,6 +27,7 @@ export const createRenderWorker = () => {
         if (!project || !project.uiCode) throw new Error("Project or UI Code not found");
 
         const interactions = (project.script as any)?.interactions || [];
+        const aspectRatio = (project.script as any)?.renderConfig?.aspectRatio === "9:16" ? "9:16" : "16:9";
         
         // Ensure storage directory exists
         const tempDir = path.join(process.cwd(), "storage", "temp");
@@ -34,7 +35,7 @@ export const createRenderWorker = () => {
 
         const rawVideoPath = path.join(tempDir, `raw-render-${randomUUID()}.webm`);
         
-        await playwrightService.renderAndRecord(projectId, project.uiCode, interactions, rawVideoPath);
+        await playwrightService.renderAndRecord(projectId, project.uiCode, interactions, rawVideoPath, aspectRatio);
 
         // Read recorded video and upload to storage via service
         const videoBuffer = fs.readFileSync(rawVideoPath);

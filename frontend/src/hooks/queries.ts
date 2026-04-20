@@ -2,11 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
+type AuthPayload = {
+  email: string;
+  password: string;
+  name?: string;
+};
+
 // --- AUTH ---
 export const useLogin = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
   return useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: AuthPayload) => {
       const res = await api.post("/auth/login", data);
       return res.data;
     },
@@ -19,7 +25,7 @@ export const useLogin = () => {
 export const useRegister = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
   return useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: AuthPayload) => {
       const res = await api.post("/auth/register", data);
       return res.data;
     },
@@ -75,11 +81,26 @@ export const useCreateProject = () => {
 export const useGenerateScript = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (projectId: string) => {
-      const res = await api.post("/generate/script", { projectId });
+    mutationFn: async (
+      payload:
+        | string
+        | {
+            projectId: string;
+            creative?: {
+              platform?: "instagram_reels" | "tiktok" | "youtube_shorts";
+              aspectRatio?: "9:16" | "16:9";
+              tone?: "premium" | "bold" | "playful" | "crazy";
+              durationSec?: number;
+              audience?: string;
+            };
+          }
+    ) => {
+      const body = typeof payload === "string" ? { projectId: payload } : payload;
+      const res = await api.post("/generate/script", body);
       return res.data.data;
     },
-    onSuccess: (_, projectId) => {
+    onSuccess: (_, payload) => {
+      const projectId = typeof payload === "string" ? payload : payload.projectId;
       qc.invalidateQueries({ queryKey: ["projects", projectId] });
     },
   });

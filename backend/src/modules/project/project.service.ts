@@ -30,6 +30,17 @@ export class ProjectService {
   async listByUser(userId: string) {
     return prisma.project.findMany({
       where: { userId },
+      include: {
+        media: {
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
   }

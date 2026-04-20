@@ -11,6 +11,21 @@ import { PlusIcon, LogOut, Layout } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+type ProjectMedia = {
+  id: string;
+  type: "DEMO" | "USER_VIDEO" | "VOICEOVER" | "FINAL";
+  url: string;
+  createdAt: string;
+};
+
+type DashboardProject = {
+  id: string;
+  status: string;
+  createdAt: string;
+  inputText: string;
+  media?: ProjectMedia[];
+};
+
 export default function DashboardPage() {
   const { data: projects, isLoading } = useProjects();
   const logout = useAuthStore((s) => s.logout);
@@ -72,13 +87,17 @@ export default function DashboardPage() {
             }
           }}
         >
-          {projects?.map((project: any) => (
-            <motion.div
-              key={project.id}
-              variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}
-            >
-              <Link href={`/projects/${project.id}/script`}>
-                <Card className="group h-full cursor-pointer p-6 transition-colors hover:border-[#888888]">
+          {projects?.map((project: DashboardProject) => (
+            <motion.div key={project.id} variants={{ hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } }}>
+              {(() => {
+                const finalMedia = project.media?.find((item: ProjectMedia) => item.type === "FINAL");
+                const demoMedia = project.media?.find((item: ProjectMedia) => item.type === "DEMO");
+                const hasPlayableMedia = Boolean(finalMedia || demoMedia);
+                const destination = hasPlayableMedia ? `/projects/${project.id}/final` : `/projects/${project.id}/script`;
+
+                return (
+                  <Link href={destination}>
+                    <Card className="group h-full cursor-pointer p-6 transition-colors hover:border-[#888888]">
                   <div className="mb-4 flex items-center justify-between">
                     <span className="inline-flex items-center rounded-full bg-[#222224] px-2.5 py-0.5 text-xs font-medium text-[#EDEDED]">
                       {project.status.toLowerCase()}
@@ -90,8 +109,13 @@ export default function DashboardPage() {
                   <p className="text-sm font-medium leading-relaxed line-clamp-3">
                     {project.inputText || "Untitled project"}
                   </p>
-                </Card>
-              </Link>
+                      <div className="mt-4 text-xs text-[#9ca3af]">
+                        {hasPlayableMedia ? "View Reel" : "Continue Workflow"}
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })()}
             </motion.div>
           ))}
         </motion.div>

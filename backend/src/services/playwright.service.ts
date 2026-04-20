@@ -6,6 +6,13 @@ import path from "path";
 export class PlaywrightService {
   private browser: Browser | null = null;
 
+  private getRenderDimensions(aspectRatio: "16:9" | "9:16") {
+    if (aspectRatio === "9:16") {
+      return { width: 720, height: 1280 };
+    }
+    return { width: 1280, height: 720 };
+  }
+
   async launchBrowser() {
     if (!this.browser) {
       this.browser = await chromium.launch({ headless: true });
@@ -13,15 +20,22 @@ export class PlaywrightService {
     return this.browser;
   }
 
-  async renderAndRecord(projectId: string, htmlContent: string, interactions: any[], outputPath: string) {
+  async renderAndRecord(
+    projectId: string,
+    htmlContent: string,
+    interactions: any[],
+    outputPath: string,
+    aspectRatio: "16:9" | "9:16" = "16:9"
+  ) {
     const browser = await this.launchBrowser();
+    const dimensions = this.getRenderDimensions(aspectRatio);
     
     // Create context with video recording enabled
     const context = await browser.newContext({
-      viewport: { width: 1280, height: 720 },
+      viewport: dimensions,
       recordVideo: {
         dir: path.dirname(outputPath),
-        size: { width: 1280, height: 720 }
+        size: dimensions
       }
     });
 

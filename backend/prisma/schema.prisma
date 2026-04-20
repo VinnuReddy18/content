@@ -11,49 +11,49 @@ model User {
   id        String    @id @default(uuid())
   email     String    @unique
   password  String
-  projects  Project[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  projects  Project[]
 }
 
 model Project {
   id        String        @id @default(uuid())
   userId    String
-  user      User          @relation(fields: [userId], references: [id])
   inputText String
   script    Json?
-  uiCode    String?       @db.Text
+  uiCode    String?
   status    ProjectStatus @default(PENDING)
-  media     Media[]
-  jobs      Job[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+  jobs      Job[]
+  media     Media[]
+  user      User          @relation(fields: [userId], references: [id])
 }
 
 model Media {
   id        String    @id @default(uuid())
   projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
   type      MediaType
   url       String
   filename  String
   mimeType  String?
   size      Int?
   createdAt DateTime  @default(now())
+  project   Project   @relation(fields: [projectId], references: [id])
 }
 
 model Job {
-  id        String    @id @default(uuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id])
-  type      JobType
-  status    JobStatus @default(PENDING)
-  result    Json?
-  error     String?
-  startedAt DateTime?
+  id          String    @id @default(uuid())
+  projectId   String
+  type        JobType
+  status      JobStatus @default(PENDING)
+  result      Json?
+  error       String?
+  startedAt   DateTime?
   completedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  project     Project   @relation(fields: [projectId], references: [id])
 }
 
 enum ProjectStatus {
